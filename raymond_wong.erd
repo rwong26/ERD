@@ -1,0 +1,135 @@
+// ...existing code...
+erdiagram RaymondWongModel
+notation=crowsfoot
+
+entity Customer {
+    cust_id: INTEGER key
+    cust_fname: VARCHAR(50)
+    cust_lname: VARCHAR(50)
+    cust_email: VARCHAR(100)
+    cust_phone: VARCHAR(20)
+    cust_address: VARCHAR(200)
+    cust_city: VARCHAR(50)
+    cust_zipcode: VARCHAR(10)
+}
+
+entity Order {
+    order_id: INTEGER key
+    cust_id: INTEGER        // FK -> Customer.cust_id (NOT NULL: each Order must be placed by one Customer)
+    order_date: DATE
+    order_status: VARCHAR(50)
+    order_total_amt: DECIMAL(10,2) derived // derived from sum(Line.line_qty_order * line_unit_price)
+    order_ship_date: DATE
+}
+
+entity Line {
+    line_id: INTEGER key
+    order_id: INTEGER       // FK -> "Order".order_id (NOT NULL: each Line belongs to one Order)
+    prod_id: INTEGER        // FK -> Product.prod_id (NOT NULL: each Line references one Product)
+    line_qty_order: INTEGER
+    line_unit_price: DECIMAL(10,2)
+}
+
+entity Product {
+    prod_id: INTEGER key
+    prod_name: VARCHAR(200)
+    prod_description: TEXT
+    prod_type: VARCHAR(50)
+    prod_category: VARCHAR(50)
+    prod_size: VARCHAR(50)
+    prod_price: DECIMAL(10,2)
+    prod_min_qty: INTEGER
+    prod_qoh: INTEGER
+    manufacturer_id: INTEGER   // FK -> Manufacturer.manufacturer_id (NOT NULL: product has one manufacturer)
+}
+
+entity Invoice {
+    inv_id: INTEGER key
+    cust_id: INTEGER        // FK -> Customer.cust_id (NOT NULL: invoice belongs to one customer)
+    order_id: INTEGER       // FK -> "Order".order_id (NOT NULL, 1:1 with Order)
+    inv_total_amt: DECIMAL(10,2) derived // derived from order or invoiced lines
+    inv_date: DATE
+}
+
+entity Manufacturer {
+    manufacturer_id: INTEGER key
+    manu_name: VARCHAR(100)
+    manu_address: VARCHAR(200)
+    manu_city: VARCHAR(50)
+    manu_zipcode: VARCHAR(10)
+    manu_phone: VARCHAR(20)
+}
+
+entity RestockPurchaseOrder {
+    restock_id: INTEGER key
+    manufacturer_id: INTEGER   // FK -> Manufacturer.manufacturer_id (NOT NULL: each restock belongs to one manufacturer)
+    restock_date: DATE
+    restock_total_amt: DECIMAL(10,2)
+}
+
+entity RestockItem {
+    restock_item_id: INTEGER key
+    restock_id: INTEGER       // FK -> RestockPurchaseOrder.restock_id
+    prod_id: INTEGER         // FK -> Product.prod_id
+    restock_qty: INTEGER
+    restock_unit_price: DECIMAL(10,2)
+}
+
+/* Relationships (adjusted for business rules) */
+
+relationship Places {
+    Customer[0..N | "customer"] -> Order[1 | "order"]
+}
+
+relationship OrderLines {
+    Order[1 | "order"] -> Line[1..N | "line"]   // each Order has 1..N Lines
+}
+
+relationship LineProduct {
+    Line[1 | "line"] -> Product[1 | "product"]
+}
+
+relationship ProductManufacturer {
+    Manufacturer[1 | "manufacturer"] -> Product[0..N | "product"]
+}
+
+relationship OrderInvoice {
+    Order[1 | "order"] -> Invoice[1 | "invoice"] // strict 1:1 as per business rule
+}
+
+relationship CustomerInvoice {
+    Customer[0..N | "customer"] -> Invoice[1 | "invoice"] // Customer may have 0..N invoices
+}
+
+relationship RestockFor {
+    RestockPurchaseOrder[1 | "restock"] -> Manufacturer[1 | "manufacturer"]
+}
+
+relationship RestockContains {
+    RestockPurchaseOrder[1 | "restock"] -> RestockItem[1..N | "items"]
+}
+
+relationship RestockItemProduct {
+    RestockItem[1 | "item"] -> Product[1 | "product"]
+}
+
+/* Notes / FK mapping:
+ - FK mappings (implementation notes):
+   Order.cust_id -> Customer.cust_id
+   Line.order_id -> "Order".order_id
+   Line.prod_id -> Product.prod_id
+   Product.manufacturer_id -> Manufacturer.manufacturer_id
+   Invoice.order_id -> "Order".order_id  (1:1)
+   Invoice.cust_id -> Customer.cust_id
+   RestockPurchaseOrder.manufacturer_id -> Manufacturer.manufacturer_id
+   RestockItem.restock_id -> RestockPurchaseOrder.restock_id
+   RestockItem.prod_id -> Product.prod_id
+
+ - Implementation notes:
+   * Use UNIQUE(invoice.order_id) and NOT NULL on invoice.order_id to enforce the 1:1 Order->Invoice business rule.
+   * order_total_amt and inv_total_amt are derived; calculate them in application logic or DB triggers.
+   * RestockPurchaseOrder -> multiple products is modeled with RestockItem junction table.
+   * Restock rule (prod_qoh < prod_min_qty) is a business/process rule; implement with scheduled job or DB trigger.
+*/
+
+// ...existing code...

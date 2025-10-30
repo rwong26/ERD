@@ -1,0 +1,102 @@
+Business Rules
+
+Customer:
+Each customer have unique ID and cannot be null
+Each customer can have multiple invoice
+Each customer may have 0 or many orders 
+Order:
+Each order must be placed by one and only one customer
+Each order can have one or many line
+Each order must have a unique order id and cannot be null
+Each order must generate one and only one invoice
+Line:
+Each line must have a unique id and cannot be null
+Each line must belong to one and only one order
+Each line must reference one and only one product
+Product:
+Each product have an unique product ID and cannot be null
+Each product can be included in 0 or many orders
+Each product must belong to one and only one manufacturer
+Invoice:
+Each invoice have a unique ID and cannot be null
+Each invoice must belong to only 1 customer
+Each invoice must only have 1 and only 1 order
+Manufacture:
+Manufacture must have a unique ID and cannot be null
+Each manufacturer can have one or many products
+Each manufacture can have 0 or many restock purchase order 
+Restock Purchase Order:
+Restock order must have a unique ID and cannot be null
+Each restock purchase order must belong to one and only one manufacturer
+Each restock purchase order must have 1 or many product
+
+
+
+
+Entities and Attributes:
+
+Customer
+CustID (PK)
+custFName
+custLName
+custEmail
+custPhone
+custAddress
+custCity
+custZipcode
+
+Order
+orderID (PK)
+custID(FK)
+orderDate
+orderStatus
+orderTotalAmt
+orderShipDate 
+
+Line:
+lineID (PK)
+orderID (FK)
+prodID (FK)
+lineQtyOrder
+lineUnitPrice
+
+Product
+prodID
+prodName
+prodDescription
+prodType
+prodCategory
+prodSize
+prodPrice
+prodMinQty
+prodQOH
+manufactureID (FK)
+
+Invoice
+invID (PK)
+custID (FK)
+orderID (FK)
+invTotalAmt
+invDate
+
+Manufacturer
+manufactureID (PK)
+manuName
+manuAddress
+manuCity
+manuZipCode
+manuPhone
+
+Restock Purchase Order:
+restockID (PK)
+prodID (FK)
+restockDate
+restockTotalAmt
+
+Constraints:
+Products that have prodMinQty less than QOH must be restocked
+Backorder products are not charged until it’s available (not recorded in the invoice)
+When a customer completes a purchase, the invoice is printed automatically
+
+Assumptions:
+Assuming that each product is sold by only 1 manufacturer
